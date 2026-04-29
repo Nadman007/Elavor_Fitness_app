@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Elevar — Fitness Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:#0a0a0a;--surface:#141414;--surface2:#1c1c1c;--surface3:#222;
+      --border:rgba(255,255,255,0.08);--accent:#c8f135;--accent-dim:rgba(200,241,53,0.12);
+      --text:#f5f5f5;--muted:#666;--danger:#ff4d4d;
+      --blue:#38bdf8;--orange:#fb923c;--purple:#a78bfa;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;overflow-x:hidden;padding-bottom:80px;}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(200,241,53,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(200,241,53,0.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+    .hidden{display:none!important;}
+
+    #splash{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;transition:opacity .5s ease;}
+    #splash.fade-out{opacity:0;pointer-events:none;}
+    .splash-logo{font-family:'Syne',sans-serif;font-size:3.5rem;font-weight:800;letter-spacing:-2px;color:var(--accent);margin-bottom:.5rem;animation:fadeUp .6s ease both;}
+    .splash-sub{font-size:.95rem;color:var(--muted);animation:fadeUp .6s ease .15s both;margin-bottom:2.5rem;text-align:center;padding:0 2rem;}
+    .splash-bar{width:200px;height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;animation:fadeUp .6s ease .3s both;}
+    .splash-bar-fill{height:100%;background:var(--accent);border-radius:2px;animation:barFill 1.5s ease forwards;}
+    @keyframes barFill{from{width:0}to{width:100%}}
+
+    #app{position:relative;z-index:1;width:100%;max-width:460px;padding:1rem;animation:fadeUp .4s ease both;}
+
+    #bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:460px;background:rgba(20,20,20,0.95);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;z-index:50;padding:.4rem 0;}
+    .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.4rem 0;cursor:pointer;font-size:.62rem;color:var(--muted);transition:color .2s;gap:2px;}
+    .nav-item .nav-icon{font-size:1.25rem;}
+    .nav-item.active{color:var(--accent);}
+
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:1.75rem;margin-bottom:1rem;}
+    .logo-mark{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;color:var(--accent);letter-spacing:-1px;margin-bottom:.25rem;}
+    .logo-sub{font-size:.8rem;color:var(--muted);margin-bottom:2rem;}
+    h2{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:700;margin-bottom:.25rem;letter-spacing:-.5px;}
+    h3{font-family:'Syne',sans-serif;font-size:1rem;color:var(--muted);margin-bottom:1.5rem;font-weight:400;}
+
+    .field{margin-bottom:.75rem;position:relative;}
+    input,select,textarea{width:100%;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:.95rem;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s;}
+    input:focus,select:focus{border-color:var(--accent);}
+    input::placeholder,textarea::placeholder{color:var(--muted);}
+    select option{background:var(--surface2);}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+    .pw-wrap{position:relative;}
+    .pw-toggle{position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1rem;color:var(--muted);}
+
+    .btn{width:100%;padding:14px;background:var(--accent);color:#0a0a0a;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;border:none;border-radius:12px;cursor:pointer;margin-top:.75rem;transition:all .2s;letter-spacing:.3px;}
+    .btn:hover{background:#d4f54d;transform:translateY(-1px);}
+    .btn:active{transform:translateY(0);}
+    .btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border);}
+    .btn-ghost:hover{background:var(--surface2);transform:none;}
+    .btn-danger{background:transparent;color:var(--danger);border:1px solid rgba(255,77,77,0.25);font-size:.8rem;padding:8px 14px;width:auto;margin-top:0;}
+    .btn-danger:hover{background:rgba(255,77,77,0.08);transform:none;}
+
+    .switch{text-align:center;font-size:.875rem;color:var(--muted);margin-top:1.25rem;}
+    .switch a{color:var(--accent);text-decoration:none;font-weight:500;cursor:pointer;}
+
+    .msg{margin-top:.75rem;font-size:.85rem;text-align:center;min-height:1.2rem;color:var(--danger);}
+    .msg.success{color:var(--accent);}
+
+    .section-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:.75rem;margin-top:1.25rem;}
+
+    .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.5rem;}
+    .stats-grid-3{grid-template-columns:1fr 1fr 1fr;}
+    .stat-box{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:1rem;}
+    .stat-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;}
+    .stat-value{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-value.blue{color:var(--blue);}
+    .stat-value.orange{color:var(--orange);}
+    .stat-value.purple{color:var(--purple);}
+    .stat-sub{font-size:.72rem;color:var(--muted);margin-top:3px;}
+
+    .streak-bar{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:1rem;display:flex;align-items:center;gap:1rem;margin-bottom:.75rem;}
+    .streak-flame{font-size:2rem;}
+    .streak-count{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--orange);line-height:1;}
+    .streak-label{font-size:.75rem;color:var(--muted);margin-top:2px;}
+
+    .dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;}
+    .dash-welcome{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:700;}
+    .dash-welcome span{color:var(--accent);}
+    .rank-badge{display:inline-block;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(200,241,53,0.25);border-radius:20px;padding:2px 10px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-top:4px;}
+
+    .log-form{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:1rem;}
+    .log-form input,.log-form select{background:var(--surface);margin-bottom:.5rem;}
+    .log-form .btn{margin-top:.25rem;}
+
+    .workout-list{display:flex;flex-direction:column;gap:.6rem;}
+    .workout-item{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:.85rem 1rem;display:flex;align-items:center;justify-content:space-between;animation:fadeUp .3s ease both;}
+    .workout-item-left{display:flex;align-items:center;gap:.75rem;}
+    .workout-icon{width:36px;height:36px;background:var(--accent-dim);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+    .workout-type{font-weight:600;font-size:.9rem;text-transform:capitalize;}
+    .workout-meta{font-size:.72rem;color:var(--muted);margin-top:2px;}
+    .workout-duration{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:var(--accent);white-space:nowrap;}
+    .workout-duration span{font-size:.65rem;color:var(--muted);font-family:'DM Sans';font-weight:400;}
+
+    .empty-state{text-align:center;padding:2rem;color:var(--muted);font-size:.9rem;}
+    .empty-state .icon{font-size:2rem;margin-bottom:.5rem;}
+
+    .chart-wrap{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:.75rem;}
+    .chart-title{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.75rem;}
+
+    .bmi-display{text-align:center;padding:1.25rem;background:var(--surface2);border:1px solid var(--border);border-radius:14px;margin-bottom:.75rem;}
+    .bmi-number{font-family:'Syne',sans-serif;font-size:3rem;font-weight:800;line-height:1;transition:color .3s;}
+    .bmi-label{font-size:.85rem;color:var(--muted);margin-top:4px;}
+    .bmi-bar-wrap{height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;margin:.75rem 0 .5rem;position:relative;}
+    .bmi-bar{height:100%;background:linear-gradient(90deg,#38bdf8,#c8f135,#fb923c,#ff4d4d);border-radius:4px;width:100%;}
+    .bmi-marker{position:absolute;top:-2px;width:12px;height:12px;background:white;border-radius:50%;transform:translateX(-50%);box-shadow:0 0 6px rgba(0,0,0,.5);transition:left .5s ease;}
+    .bmi-range-labels{display:flex;justify-content:space-between;font-size:.62rem;color:var(--muted);}
+
+    .profile-avatar{width:72px;height:72px;background:var(--accent-dim);border:2px solid rgba(200,241,53,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 1rem;}
+    .profile-name{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;text-align:center;margin-bottom:4px;}
+    .profile-rank{text-align:center;margin-bottom:1.5rem;}
+    .info-row{display:flex;justify-content:space-between;align-items:center;padding:.75rem 0;border-bottom:1px solid var(--border);font-size:.9rem;}
+    .info-row:last-child{border-bottom:none;}
+    .info-row-label{color:var(--muted);}
+    .info-row-value{font-weight:600;}
+
+    .pr-grid{display:flex;flex-direction:column;gap:.6rem;}
+    .pr-item{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:.85rem 1rem;display:flex;align-items:center;justify-content:space-between;}
+    .pr-left{display:flex;align-items:center;gap:.75rem;}
+    .pr-badge{width:32px;height:32px;background:rgba(251,146,60,0.1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.9rem;}
+    .pr-name{font-weight:600;font-size:.9rem;text-transform:capitalize;}
+    .pr-date{font-size:.7rem;color:var(--muted);margin-top:2px;}
+    .pr-value{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--orange);}
+
+    .calorie-result{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:1.25rem;text-align:center;margin-top:.75rem;}
+    .calorie-number{font-family:'Syne',sans-serif;font-size:2.5rem;font-weight:800;color:var(--orange);}
+    .calorie-label{font-size:.8rem;color:var(--muted);margin-top:4px;}
+
+    .tab-pills{display:flex;gap:.5rem;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:1rem;}
+    .tab-pill{flex:1;padding:8px;border:none;border-radius:9px;background:transparent;color:var(--muted);font-size:.78rem;font-family:'DM Sans';cursor:pointer;transition:all .2s;}
+    .tab-pill.active{background:var(--surface);color:var(--text);font-weight:600;}
+
+    .check-row{display:flex;align-items:center;gap:.5rem;margin-top:.5rem;}
+    .check-row input[type="checkbox"]{width:auto;accent-color:var(--accent);}
+    .check-row label{font-size:.85rem;color:var(--muted);cursor:pointer;}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    #view-dashboard{padding-bottom:70px;}
+  </style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="splash-logo">Elevar</div>
+  <div class="splash-sub">Do the hard work, especially when you don't feel like it</div>
+  <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+</div>
+
+<div id="bottom-nav" class="hidden">
+  <div class="nav-item active" data-tab="home" onclick="switchTab('home')"><span class="nav-icon">🏠</span>Home</div>
+  <div class="nav-item" data-tab="charts" onclick="switchTab('charts')"><span class="nav-icon">📊</span>Progress</div>
+  <div class="nav-item" data-tab="tools" onclick="switchTab('tools')"><span class="nav-icon">🧮</span>Tools</div>
+  <div class="nav-item" data-tab="prs" onclick="switchTab('prs')"><span class="nav-icon">🏆</span>PRs</div>
+  <div class="nav-item" data-tab="profile" onclick="switchTab('profile')"><span class="nav-icon">👤</span>Profile</div>
+</div>
+
+<div id="app" class="hidden">
+
+  <!-- Register -->
+  <div id="view-register" class="hidden">
+    <div class="card">
+      <div class="logo-mark">Elevar</div>
+      <div class="logo-sub">Start your fitness journey</div>
+      <h2>Create Account</h2>
+      <h3>It's free. No excuses.</h3>
+      <div class="field"><input type="text" id="reg-username" placeholder="Username"/></div>
+      <div class="field pw-wrap">
+        <input type="password" id="reg-password" placeholder="Password"/>
+        <span class="pw-toggle" id="reg-toggle">👁</span>
+      </div>
+      <div class="field-row">
+        <div class="field"><input type="number" id="reg-height" placeholder="Height (cm)"/></div>
+        <div class="field"><input type="number" id="reg-weight" placeholder="Weight (kg)"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><input type="number" id="reg-age" placeholder="Age"/></div>
+        <div class="field">
+          <select id="reg-gender">
+            <option value="">Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn" id="reg-btn">Create Account</button>
+      <div class="msg" id="reg-msg"></div>
+      <div class="switch">Already have an account? <a id="go-login">Log in →</a></div>
+    </div>
+  </div>
+
+  <!-- Login -->
+  <div id="view-login" class="hidden">
+    <div class="card">
+      <div class="logo-mark">Elevar</div>
+      <div class="logo-sub">Welcome back</div>
+      <h2>Log In</h2>
+      <h3>Keep the momentum going.</h3>
+      <div class="field"><input type="text" id="login-username" placeholder="Username"/></div>
+      <div class="field pw-wrap">
+        <input type="password" id="login-password" placeholder="Password"/>
+        <span class="pw-toggle" id="login-toggle">👁</span>
+      </div>
+      <div class="check-row">
+        <input type="checkbox" id="remember-me"/>
+        <label for="remember-me">Remember me</label>
+      </div>
+      <button class="btn" id="login-btn">Log In</button>
+      <div class="msg" id="login-msg"></div>
+      <div class="switch">No account? <a id="go-register">Register here →</a></div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="view-dashboard" class="hidden">
+
+    <!-- HOME -->
+    <div id="tab-home">
+      <div class="card">
+        <div class="dash-header">
+          <div>
+            <div class="dash-welcome">Hey, <span id="dash-name">Athlete</span> 👋</div>
+            <div><span class="rank-badge" id="dash-rank">Beginner</span></div>
+          </div>
+          <button class="btn btn-danger" id="logout-btn">Logout</button>
+        </div>
+        <div class="streak-bar">
+          <div class="streak-flame">🔥</div>
+          <div>
+            <div class="streak-count" id="streak-count">0</div>
+            <div class="streak-label">day streak — keep it going!</div>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="stat-label">Total Sessions</div><div class="stat-value" id="stat-total">0</div><div class="stat-sub">workouts logged</div></div>
+          <div class="stat-box"><div class="stat-label">Total Minutes</div><div class="stat-value blue" id="stat-mins">0</div><div class="stat-sub">time trained</div></div>
+        </div>
+        <div class="stats-grid stats-grid-3">
+          <div class="stat-box"><div class="stat-label">This Week</div><div class="stat-value purple" id="stat-week">0</div><div class="stat-sub">sessions</div></div>
+          <div class="stat-box"><div class="stat-label">Calories</div><div class="stat-value orange" id="stat-cals">0</div><div class="stat-sub">burned</div></div>
+          <div class="stat-box"><div class="stat-label">Avg Duration</div><div class="stat-value" id="stat-avg">0</div><div class="stat-sub">min/session</div></div>
+        </div>
+        <div class="section-label">Log a Workout</div>
+        <div class="log-form">
+          <div class="field-row">
+            <input type="text" id="w-type" placeholder="Type (e.g. Running)"/>
+            <select id="w-category">
+              <option value="">Category</option>
+              <option value="Cardio">Cardio</option>
+              <option value="Strength">Strength</option>
+              <option value="Flexibility">Flexibility</option>
+              <option value="Sports">Sports</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="field-row" style="margin-top:.5rem">
+            <input type="number" id="w-duration" placeholder="Duration (min)"/>
+            <input type="number" id="w-calories" placeholder="Calories (optional)"/>
+          </div>
+          <input type="text" id="w-notes" placeholder="Notes (optional)" style="margin-top:.5rem"/>
+          <button class="btn" id="log-btn">+ Log Workout</button>
+          <div class="msg" id="log-msg"></div>
+        </div>
+        <div class="section-label">Recent Workouts</div>
+        <div class="workout-list" id="workout-list"></div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div id="tab-charts" class="hidden">
+      <div class="card">
+        <h2>Progress</h2>
+        <h3>Your last 7 days</h3>
+        <div class="tab-pills">
+          <button class="tab-pill active" onclick="switchChartTab(this,'duration')">Duration</button>
+          <button class="tab-pill" onclick="switchChartTab(this,'sessions')">Sessions</button>
+          <button class="tab-pill" onclick="switchChartTab(this,'calories')">Calories</button>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-title" id="chart-title">Minutes trained per day</div>
+          <canvas id="mainChart" height="180"></canvas>
+        </div>
+        <div class="section-label">Workout Breakdown</div>
+        <div class="chart-wrap">
+          <div class="chart-title">Sessions by type</div>
+          <canvas id="pieChart" height="180"></canvas>
+        </div>
+        <div class="section-label">This Month</div>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="stat-label">Sessions</div><div class="stat-value" id="month-sessions">0</div></div>
+          <div class="stat-box"><div class="stat-label">Minutes</div><div class="stat-value blue" id="month-mins">0</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOOLS -->
+    <div id="tab-tools" class="hidden">
+      <div class="card">
+        <h2>Tools</h2>
+        <h3>Your fitness calculators</h3>
+        <div class="section-label">BMI Calculator</div>
+        <div class="bmi-display">
+          <div class="bmi-number" id="bmi-number">—</div>
+          <div class="bmi-label" id="bmi-label">Enter your stats below</div>
+          <div class="bmi-bar-wrap">
+            <div class="bmi-bar"></div>
+            <div class="bmi-marker" id="bmi-marker" style="left:0%"></div>
+          </div>
+          <div class="bmi-range-labels">
+            <span>Underweight</span><span>Normal</span><span>Overweight</span><span>Obese</span>
+          </div>
+        </div>
+        <div class="field-row">
+          <input type="number" id="bmi-height" placeholder="Height (cm)"/>
+          <input type="number" id="bmi-weight" placeholder="Weight (kg)"/>
+        </div>
+        <button class="btn" id="bmi-btn" style="margin-top:.75rem">Calculate BMI</button>
+        <div class="section-label" style="margin-top:1.5rem">Calorie Burn Estimator</div>
+        <div class="field-row">
+          <select id="cal-type">
+            <option value="">Workout type</option>
+            <option value="running">Running</option>
+            <option value="cycling">Cycling</option>
+            <option value="swimming">Swimming</option>
+            <option value="walking">Walking</option>
+            <option value="hiit">HIIT</option>
+            <option value="weights">Weight Training</option>
+            <option value="yoga">Yoga</option>
+            <option value="boxing">Boxing</option>
+            <option value="rowing">Rowing</option>
+          </select>
+          <input type="number" id="cal-duration" placeholder="Duration (min)"/>
+        </div>
+        <input type="number" id="cal-weight" placeholder="Your weight (kg)" style="margin-top:.5rem"/>
+        <button class="btn" id="cal-btn" style="margin-top:.75rem">Estimate Calories</button>
+        <div class="calorie-result hidden" id="cal-result">
+          <div class="calorie-number" id="cal-number">0</div>
+          <div class="calorie-label">estimated calories burned</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:.5rem" id="cal-detail"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRs -->
+    <div id="tab-prs" class="hidden">
+      <div class="card">
+        <h2>Personal Records</h2>
+        <h3>Your best performances</h3>
+        <div class="section-label">Log a PR</div>
+        <div class="log-form">
+          <input type="text" id="pr-exercise" placeholder="Exercise (e.g. Bench Press, 5K Run)"/>
+          <div class="field-row" style="margin-top:.5rem">
+            <input type="number" id="pr-value" placeholder="Value"/>
+            <select id="pr-unit">
+              <option value="kg">kg</option>
+              <option value="lbs">lbs</option>
+              <option value="min">min</option>
+              <option value="km">km</option>
+              <option value="reps">reps</option>
+            </select>
+          </div>
+          <button class="btn" id="pr-btn">Save PR</button>
+          <div class="msg" id="pr-msg"></div>
+        </div>
+        <div class="section-label">Your PRs</div>
+        <div class="pr-grid" id="pr-list">
+          <div class="empty-state"><div class="icon">🏆</div><div>No PRs yet. Log your best lifts!</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div id="tab-profile" class="hidden">
+      <div class="card">
+        <div class="profile-avatar">💪</div>
+        <div class="profile-name" id="profile-username">—</div>
+        <div class="profile-rank"><span class="rank-badge" id="profile-rank">Beginner</span></div>
+        <div class="section-label">Your Stats</div>
+        <div class="info-row"><span class="info-row-label">Height</span><span class="info-row-value" id="p-height">—</span></div>
+        <div class="info-row"><span class="info-row-label">Weight</span><span class="info-row-value" id="p-weight">—</span></div>
+        <div class="info-row"><span class="info-row-label">Age</span><span class="info-row-value" id="p-age">—</span></div>
+        <div class="info-row"><span class="info-row-label">Gender</span><span class="info-row-value" id="p-gender">—</span></div>
+        <div class="info-row"><span class="info-row-label">BMI</span><span class="info-row-value" id="p-bmi">—</span></div>
+        <div class="info-row"><span class="info-row-label">Member Since</span><span class="info-row-value" id="p-since">—</span></div>
+        <div class="section-label">Achievements</div>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="stat-label">Total Sessions</div><div class="stat-value" id="p-sessions">0</div></div>
+          <div class="stat-box"><div class="stat-label">Hours Trained</div><div class="stat-value blue" id="p-hours">0</div></div>
+        </div>
+        <div class="section-label">Account</div>
+        <button class="btn btn-danger" style="width:100%;margin-top:0" id="logout-btn2">Logout</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API='http://localhost:5001';
+let allWorkouts=[],currentUser=null,mainChart=null,pieChart=null,chartTab='duration';
+const $=id=>document.getElementById(id);
+
+function show(id){
+  ['view-register','view-login','view-dashboard'].forEach(v=>$(v).classList.add('hidden'));
+  $(id).classList.remove('hidden');
+  $('bottom-nav').classList[id==='view-dashboard'?'remove':'add']('hidden');
+}
+function setMsg(id,txt,ok=false){const e=$(id);e.textContent=txt;e.className='msg'+(ok?' success':'');}
+function getToken(){return localStorage.getItem('elevar_token')||sessionStorage.getItem('elevar_token');}
+function saveToken(t,rem){rem?localStorage.setItem('elevar_token',t):sessionStorage.setItem('elevar_token',t);}
+function clearToken(){localStorage.removeItem('elevar_token');sessionStorage.removeItem('elevar_token');}
+
+const ICONS={running:'🏃',cycling:'🚴',swimming:'🏊',yoga:'🧘',chest:'💪',back:'🏋️',legs:'🦵',cardio:'❤️',hiit:'⚡',boxing:'🥊',walking:'🚶',rowing:'🚣',weights:'🏋️',default:'🏋️'};
+function getIcon(t){const k=t.toLowerCase();return(ICONS[Object.keys(ICONS).find(i=>k.includes(i))])||ICONS.default;}
+function fmtDate(d){return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+function fmtDT(d){return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
+
+function switchTab(tab){
+  ['home','charts','tools','prs','profile'].forEach(t=>{
+    $('tab-'+t).classList.add('hidden');
+    document.querySelector(`[data-tab="${t}"]`)?.classList.remove('active');
+  });
+  $('tab-'+tab).classList.remove('hidden');
+  document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
+  if(tab==='charts')renderCharts();
+  if(tab==='profile')renderProfile();
+  if(tab==='tools'&&currentUser){
+    if(currentUser.height)$('bmi-height').value=currentUser.height;
+    if(currentUser.weight){$('bmi-weight').value=currentUser.weight;$('cal-weight').value=currentUser.weight;}
+  }
+}
+
+function switchChartTab(btn,tab){
+  chartTab=tab;
+  document.querySelectorAll('.tab-pill').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  renderCharts();
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  setTimeout(()=>{
+    $('splash').classList.add('fade-out');
+    setTimeout(()=>{
+      $('splash').classList.add('hidden');
+      $('app').classList.remove('hidden');
+      getToken()?loadDashboard():show('view-register');
+    },500);
+  },1800);
+});
+
+$('go-login').addEventListener('click',()=>show('view-login'));
+$('go-register').addEventListener('click',()=>show('view-register'));
+$('reg-toggle').addEventListener('click',()=>{const i=$('reg-password');i.type=i.type==='password'?'text':'password';});
+$('login-toggle').addEventListener('click',()=>{const i=$('login-password');i.type=i.type==='password'?'text':'password';});
+
+$('reg-btn').addEventListener('click',async()=>{
+  const username=$('reg-username').value.trim(),password=$('reg-password').value;
+  const height=$('reg-height').value,weight=$('reg-weight').value,age=$('reg-age').value,gender=$('reg-gender').value;
+  if(!username||!password)return setMsg('reg-msg','Username and password required');
+  try{
+    const res=await fetch(`${API}/auth/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password,height,weight,age,gender})});
+    const data=await res.json();
+    if(res.ok){setMsg('reg-msg','✓ Account created!',true);setTimeout(()=>autoLogin(username,password),800);}
+    else setMsg('reg-msg',data.error||'Registration failed');
+  }catch{setMsg('reg-msg','Cannot connect to server');}
+});
+
+async function autoLogin(username,password){
+  const res=await fetch(`${API}/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+  const data=await res.json();
+  if(data.token){saveToken(data.token,false);loadDashboard(data.user);}
+}
+
+$('login-btn').addEventListener('click',async()=>{
+  const username=$('login-username').value.trim(),password=$('login-password').value,remember=$('remember-me').checked;
+  if(!username||!password)return setMsg('login-msg','Fill in all fields');
+  try{
+    const res=await fetch(`${API}/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const data=await res.json();
+    if(data.token){saveToken(data.token,remember);loadDashboard(data.user);}
+    else setMsg('login-msg',data.error||'Login failed');
+  }catch{setMsg('login-msg','Cannot connect to server');}
+});
+$('login-password').addEventListener('keydown',e=>{if(e.key==='Enter')$('login-btn').click();});
+$('reg-password').addEventListener('keydown',e=>{if(e.key==='Enter')$('reg-btn').click();});
+
+async function loadDashboard(user){
+  show('view-dashboard');switchTab('home');
+  if(user){currentUser=user;}
+  else{try{const r=await fetch(`${API}/auth/me`,{headers:{'Authorization':`Bearer ${getToken()}`}});currentUser=await r.json();}catch{}}
+  if(currentUser){$('dash-name').textContent=currentUser.username;$('dash-rank').textContent=currentUser.rank||'Beginner';}
+  await loadWorkouts();loadPRs();
+}
+
+async function loadWorkouts(){
+  try{
+    const res=await fetch(`${API}/workouts`,{headers:{'Authorization':`Bearer ${getToken()}`}});
+    allWorkouts=await res.json();renderHome();
+  }catch{$('workout-list').innerHTML='<div class="empty-state"><div>Failed to load workouts.</div></div>';}
+}
+
+function renderHome(){
+  const total=allWorkouts.length,totalMin=allWorkouts.reduce((s,w)=>s+w.duration,0);
+  const totalCal=allWorkouts.reduce((s,w)=>s+(w.calories||0),0),avg=total?Math.round(totalMin/total):0;
+  const now=new Date(),ws=new Date(now);ws.setDate(now.getDate()-now.getDay());
+  const thisWeek=allWorkouts.filter(w=>new Date(w.date)>=ws).length;
+  $('stat-total').textContent=total;$('stat-mins').textContent=totalMin;
+  $('stat-cals').textContent=totalCal;$('stat-avg').textContent=avg;$('stat-week').textContent=thisWeek;
+  $('streak-count').textContent=calcStreak(allWorkouts);
+  const list=$('workout-list'),recent=allWorkouts.slice(0,10);
+  if(!recent.length){list.innerHTML=`<div class="empty-state"><div class="icon">🏋️</div><div>No workouts yet!</div></div>`;return;}
+  list.innerHTML=recent.map(w=>`
+    <div class="workout-item">
+      <div class="workout-item-left">
+        <div class="workout-icon">${getIcon(w.type)}</div>
+        <div><div class="workout-type">${w.type}</div><div class="workout-meta">${fmtDT(w.date)}${w.notes?' · '+w.notes:''}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <div class="workout-duration">${w.duration}<span> min</span></div>
+        <button onclick="deleteWorkout('${w._id}')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:1rem;padding:4px;width:auto;margin:0">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function calcStreak(ws){
+  if(!ws.length)return 0;
+  const days=[...new Set(ws.map(w=>new Date(w.date).toDateString()))].map(d=>new Date(d)).sort((a,b)=>b-a);
+  let streak=0,check=new Date();check.setHours(0,0,0,0);
+  for(const d of days){const day=new Date(d);day.setHours(0,0,0,0);const diff=Math.round((check-day)/86400000);if(diff===0||diff===1){streak++;check=day;}else break;}
+  return streak;
+}
+
+$('log-btn').addEventListener('click',async()=>{
+  const type=$('w-type').value.trim(),duration=$('w-duration').value,calories=$('w-calories').value,notes=$('w-notes').value.trim();
+  if(!type||!duration)return setMsg('log-msg','Type and duration required');
+  try{
+    const res=await fetch(`${API}/workouts/log`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getToken()}`},body:JSON.stringify({type,duration:+duration,calories:+calories||0,notes})});
+    const data=await res.json();
+    if(res.ok){setMsg('log-msg','✓ Workout logged!',true);$('w-type').value=$('w-duration').value=$('w-calories').value=$('w-notes').value='';setTimeout(()=>setMsg('log-msg',''),2000);await loadWorkouts();}
+    else setMsg('log-msg',data.error||'Failed');
+  }catch{setMsg('log-msg','Cannot connect to server');}
+});
+
+async function deleteWorkout(id){
+  try{await fetch(`${API}/workouts/${id}`,{method:'DELETE',headers:{'Authorization':`Bearer ${getToken()}`}});await loadWorkouts();}
+  catch{alert('Failed to delete');}
+}
+
+function renderCharts(){
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);d.setHours(0,0,0,0);days.push(d);}
+  const labels=days.map(d=>d.toLocaleDateString('en-US',{weekday:'short'}));
+  const titles={duration:'Minutes trained per day',sessions:'Sessions per day',calories:'Calories burned per day'};
+  $('chart-title').textContent=titles[chartTab];
+  const data=days.map(day=>{
+    const ds=day.toDateString(),dw=allWorkouts.filter(w=>new Date(w.date).toDateString()===ds);
+    return chartTab==='duration'?dw.reduce((s,w)=>s+w.duration,0):chartTab==='sessions'?dw.length:dw.reduce((s,w)=>s+(w.calories||0),0);
+  });
+  const ctx=$('mainChart').getContext('2d');
+  if(mainChart)mainChart.destroy();
+  mainChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data,backgroundColor:'rgba(200,241,53,0.2)',borderColor:'#c8f135',borderWidth:2,borderRadius:6,hoverBackgroundColor:'rgba(200,241,53,0.4)'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#666'}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#666'},beginAtZero:true}}}});
+  const typeMap={};
+  allWorkouts.forEach(w=>{const k=w.type.charAt(0).toUpperCase()+w.type.slice(1).toLowerCase();typeMap[k]=(typeMap[k]||0)+1;});
+  const pCtx=$('pieChart').getContext('2d');
+  if(pieChart)pieChart.destroy();
+  if(Object.keys(typeMap).length){
+    pieChart=new Chart(pCtx,{type:'doughnut',data:{labels:Object.keys(typeMap),datasets:[{data:Object.values(typeMap),backgroundColor:['#c8f135','#38bdf8','#fb923c','#a78bfa','#ff4d4d','#34d399','#f472b6'],borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{color:'#666',padding:12,font:{size:11}}}},cutout:'65%'}});
+  }
+  const now=new Date(),mw=allWorkouts.filter(w=>{const d=new Date(w.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  $('month-sessions').textContent=mw.length;$('month-mins').textContent=mw.reduce((s,w)=>s+w.duration,0);
+}
+
+$('bmi-btn').addEventListener('click',()=>{
+  const h=parseFloat($('bmi-height').value),w=parseFloat($('bmi-weight').value);
+  if(!h||!w)return;
+  const bmi=+(w/((h/100)**2)).toFixed(1);
+  $('bmi-number').textContent=bmi;
+  let label,color;
+  if(bmi<18.5){label='Underweight';color='#38bdf8';}
+  else if(bmi<25){label='Normal weight';color='#c8f135';}
+  else if(bmi<30){label='Overweight';color='#fb923c';}
+  else{label='Obese';color='#ff4d4d';}
+  $('bmi-label').textContent=label;$('bmi-number').style.color=color;
+  $('bmi-marker').style.left=Math.min(100,Math.max(0,((bmi-15)/25)*100))+'%';
+});
+
+const MET={running:5,cycling:7.5,swimming:8,walking:3.5,hiit:9,weights:5,yoga:3,boxing:9,rowing:8.5};
+$('cal-btn').addEventListener('click',()=>{
+  const type=$('cal-type').value,duration=parseFloat($('cal-duration').value),weight=parseFloat($('cal-weight').value);
+  if(!type||!duration||!weight)return;
+  const cals=Math.round((MET[type]||5)*weight*(duration/60));
+  $('cal-result').classList.remove('hidden');
+  $('cal-number').textContent=cals;
+  $('cal-detail').textContent=`Based on ${duration} min of ${type} at ${weight}kg`;
+});
+
+function loadPRs(){renderPRs(JSON.parse(localStorage.getItem('elevar_prs')||'[]'));}
+function renderPRs(prs){
+  const list=$('pr-list');
+  if(!prs.length){list.innerHTML=`<div class="empty-state"><div class="icon">🏆</div><div>No PRs yet!</div></div>`;return;}
+  list.innerHTML=prs.map((pr,i)=>`
+    <div class="pr-item">
+      <div class="pr-left">
+        <div class="pr-badge">🏅</div>
+        <div><div class="pr-name">${pr.exercise}</div><div class="pr-date">${fmtDate(pr.date)}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <div class="pr-value">${pr.value} <span style="font-size:.7rem;color:var(--muted);font-family:'DM Sans'">${pr.unit}</span></div>
+        <button onclick="deletePR(${i})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:1rem;padding:4px;width:auto;margin:0">✕</button>
+      </div>
+    </div>`).join('');
+}
+$('pr-btn').addEventListener('click',()=>{
+  const exercise=$('pr-exercise').value.trim(),value=$('pr-value').value,unit=$('pr-unit').value;
+  if(!exercise||!value)return setMsg('pr-msg','Fill in all fields');
+  const prs=JSON.parse(localStorage.getItem('elevar_prs')||'[]');
+  prs.unshift({exercise,value:+value,unit,date:new Date().toISOString()});
+  localStorage.setItem('elevar_prs',JSON.stringify(prs));
+  $('pr-exercise').value=$('pr-value').value='';
+  setMsg('pr-msg','✓ PR saved!',true);setTimeout(()=>setMsg('pr-msg',''),2000);renderPRs(prs);
+});
+function deletePR(i){const prs=JSON.parse(localStorage.getItem('elevar_prs')||'[]');prs.splice(i,1);localStorage.setItem('elevar_prs',JSON.stringify(prs));renderPRs(prs);}
+
+function renderProfile(){
+  if(!currentUser)return;
+  $('profile-username').textContent=currentUser.username;
+  $('profile-rank').textContent=currentUser.rank||'Beginner';
+  $('p-height').textContent=currentUser.height?currentUser.height+' cm':'—';
+  $('p-weight').textContent=currentUser.weight?currentUser.weight+' kg':'—';
+  $('p-age').textContent=currentUser.age?currentUser.age+' yrs':'—';
+  $('p-gender').textContent=currentUser.gender||'—';
+  $('p-since').textContent=currentUser.createdAt?fmtDate(currentUser.createdAt):'—';
+  if(currentUser.height&&currentUser.weight){
+    const bmi=+(currentUser.weight/((currentUser.height/100)**2)).toFixed(1);
+    $('p-bmi').textContent=bmi+(bmi<18.5?' (Underweight)':bmi<25?' (Normal)':bmi<30?' (Overweight)':' (Obese)');
+  }
+  $('p-sessions').textContent=allWorkouts.length;
+  $('p-hours').textContent=Math.round(allWorkouts.reduce((s,w)=>s+w.duration,0)/60);
+}
+
+['logout-btn','logout-btn2'].forEach(id=>$(id).addEventListener('click',()=>{clearToken();currentUser=null;allWorkouts=[];show('view-login');}));
+</script>
+</body>
+</html>
